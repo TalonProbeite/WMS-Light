@@ -1,0 +1,41 @@
+# --- Python & Virtual Environments ---
+.venv/
+venv/
+ENV/
+env/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.mypy_cache/
+
+# --- UV & Dependency Managers ---
+# uv.lock НЕ нужно игнорить (он фиксирует версии), а вот кэш убираем
+.uv/
+
+# --- Environment Variables (Секреты) ---
+# Игнорим сам файл с паролями, чтобы не улетел на GitHub
+.env
+.env.local
+.env.*.local
+
+# --- IDEs & Editors ---
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- OS specific files (Особенно важно для Windows) ---
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+.DS_Store
+
+# --- Docker & DB local data ---
+# Если будешь маунтить папку для данных БД, чтобы они не стирались при перезапуске
+pg_data/
+postgres_data/
+
+
+notes.txt
