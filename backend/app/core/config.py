@@ -14,6 +14,10 @@ class DatabaseSettings(BaseModel):
     DATABASE_PORT: int = 5432
     DATABASE_SSL: str = "disable"
 
+    FIRST_SUPERUSER_USERNAME: str = "superadmin"
+    FIRST_SUPERUSER_PASSWORD: str
+    FIRST_SUPERUSER_PHONE: str 
+
     @property
     def url(self) -> str:
         return f"postgresql+asyncpg://{self.DATABASE_USER}:{self.DATABASE_PASSWORD}@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}?ssl={self.DATABASE_SSL}"
