@@ -15,7 +15,7 @@ class Transactions(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
 
     product = relationship("Products", back_populates="transactions")
-    user = relationship("Users", back_populates="transactions")
+    users = relationship("Users", back_populates="transactions")
 
     def __repr__(self):
         return f"<Transaction(id={self.id}, type={self.transaction_type}, quantity={self.quantity})>"

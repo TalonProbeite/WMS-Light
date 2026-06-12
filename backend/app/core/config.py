@@ -16,7 +16,7 @@ class DatabaseSettings(BaseModel):
 
     FIRST_SUPERUSER_USERNAME: str = "superadmin"
     FIRST_SUPERUSER_PASSWORD: str
-    FIRST_SUPERUSER_PHONE: str 
+    FIRST_SUPERUSER_PHONE: str
 
     @property
     def url(self) -> str:
