@@ -11,7 +11,7 @@ class Users(Base):
     hashed_password = Column(String(255), nullable=False)
     role = Column(String(20), nullable=False, default="user")
     last_login = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
-
+    phone = Column(String(20), nullable=True, unique=True)
     
     transactions = relationship("Transactions", back_populates="users") 
 
