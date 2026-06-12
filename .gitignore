@@ -37,5 +37,6 @@ Desktop.ini
 pg_data/
 postgres_data/
 
+logs/
 
 notes.txt
