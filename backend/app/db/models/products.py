@@ -6,13 +6,13 @@ class Products(Base):
     __tablename__ = "products"
 
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String(255), nullable=False)
+    name = Column(String(255), nullable=False , unique=True)
     sku = Column(String(50), nullable=False, unique=True)
     qr_code_uuid = Column(String(64), nullable=False, unique=True)
     description = Column(String)
 
   
-    category_id = Column(Integer, ForeignKey("categories.id", ondelete="SET NULL"), nullable=True)
+    category_id = Column(Integer, ForeignKey("categories.id", ondelete='CASCADE'), nullable=False, index=True)
 
     
     category = relationship("Categories", back_populates="products")
