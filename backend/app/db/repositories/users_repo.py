@@ -15,26 +15,47 @@ class UserRepository:
         result = await self.db.execute(select(Users).where(Users.id == user_id))
         return result.scalar_one_or_none()
     
+    async def _add_user(self, username: str, password: str, 
+                         role: str = "worker", phone: Optional[str] = None)->Users:
+        user = Users(
+            username = username,
+            hashed_password = get_hash_pass(password),
+            role = role,
+            phone  = phone or None
+        )
+        try:
+            self.db.add(user)
+            await self.db.commit()
+            await self.db.refresh(user)
+            return user
+        except Exception as e:
+            await self.db.rollback()
+            raise e
+
 
     async def add_superadmin(self) -> Tuple[Users, str]:
         result = await self.db.execute(select(Users).where(Users.role == "superadmin"))
         admin_obj = result.scalar_one_or_none()
         
         if not admin_obj:
-            superadmin = Users(
-                username = settings.db.FIRST_SUPERUSER_USERNAME,
-                role = "superadmin",
-                phone = settings.db.FIRST_SUPERUSER_PHONE,
-                hashed_password = get_hash_pass(settings.db.FIRST_SUPERUSER_PASSWORD)    
-            )
-
-            try:
-                self.db.add(superadmin)
-                await self.db.commit()
-                await self.db.refresh(superadmin)
-                return (superadmin, "created")
-            except Exception as e:
-                await self.db.rollback()
-                raise e
-                
+            superadmin = await self._add_user(username=settings.db.FIRST_SUPERUSER_USERNAME,
+                                         role="superadmin",
+                                         phone=settings.db.FIRST_SUPERUSER_PHONE,
+                                         password=settings.db.FIRST_SUPERUSER_PASSWORD)
+            return (superadmin, "created")
         return (admin_obj, "existing")
+    
+
+    async def add_worker(self, username:str , password:str, phone:str = "")->Users:      
+        worker = await self._add_user(username=username,
+                                       role="worker",
+                                       password=password,
+                                       phone=phone)
+        return worker
+    
+    async def add_admin(self, username:str , password:str, phone:str = "")->Users:      
+        admin = await self._add_user(username=username,
+                                       role="admin",
+                                       password=password,
+                                       phone=phone)
+        return admin
