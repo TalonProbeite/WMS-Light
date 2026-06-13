@@ -2,7 +2,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 from sqlalchemy.orm import DeclarativeBase
 from app.core.config import settings
 from loguru import logger
-
+from app.db.seeds import feel_db
 
 
 engine = create_async_engine(
@@ -43,3 +43,4 @@ async def init_db():
             logger.info("The super admin is initialized with standard environment arguments.")
         elif status == "existing":
             logger.info("Super admin already exists")
+        await feel_db(session)

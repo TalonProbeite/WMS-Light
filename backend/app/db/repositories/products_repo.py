@@ -81,13 +81,18 @@ class ProductsRepository:
             raise e
         
     async def create_product_with_stock(self, name: str, 
-                                        category_id: int, initial_quantity: int) -> Products:
+                                        category_id: int, sku:str, 
+                                        qr_code_uuid:str,initial_quantity: int,
+                                        description:Optional[str]= None) -> Products:
         new_stock = Stock(quantity=initial_quantity)
         
      
         new_product = Products(
             name=name,
             category_id=category_id,
+            sku = sku,
+            qr_code_uuid = qr_code_uuid,
+            description = description,
             stock=new_stock 
         )
         
