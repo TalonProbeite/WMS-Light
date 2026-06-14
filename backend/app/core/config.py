@@ -22,6 +22,11 @@ class DatabaseSettings(BaseModel):
     def url(self) -> str:
         return f"postgresql+asyncpg://{self.DATABASE_USER}:{self.DATABASE_PASSWORD}@{self.DATABASE_HOST}:{self.DATABASE_PORT}/{self.DATABASE_NAME}?ssl={self.DATABASE_SSL}"
 
+class JWTSettings(BaseModel):
+
+    SECRET_KEY:str
+    algorithm:str = "HS256"
+    
 
 class Settings(BaseSettings):
     app_name: str = "WMS-Light"
@@ -35,6 +40,7 @@ class Settings(BaseSettings):
     static_dir: Path =  BASE_DIR / "frontend"
 
     db: DatabaseSettings
+    jwt:JWTSettings
 
     model_config = SettingsConfigDict(env_file=".env", env_nested_delimiter="__")
 
