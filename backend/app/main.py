@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from app.core.config import settings
 from app.db.database import init_db
 from app.core.logger import setup_logging
-
+from app.api.users_routes import router as UsersRouter
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -31,3 +31,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+app.include_router(UsersRouter)

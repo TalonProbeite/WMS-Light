@@ -1,5 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional, Tuple
+from typing import Optional, Tuple ,List
 from sqlalchemy import select , update
 from datetime import datetime, timezone
 
@@ -86,3 +86,16 @@ class UserRepository:
             raise InvalidPasswordError()
         await self.update_login_time(user.id)
         return user
+    
+    async def get_all_users(self)->List[Users]:
+        result = await self.db.execute(select(Users))
+        return result.scalars().all()
+    
+    async def get_all_workers(self)->List[Users]:
+        result = await self.db.execute(select(Users).where(Users.role == "worker"))
+        return result.scalars().all()
+
+    async def get_all_admins(self)->List[Users]:
+        result = await self.db.execute(select(Users).where(Users.role == "admin"))
+        return result.scalars().all()
+
