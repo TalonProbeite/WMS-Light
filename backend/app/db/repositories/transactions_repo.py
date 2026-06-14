@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from app.db.models.stock import Stock
 from app.db.models.products import Products
 from app.db.models.transactions import Transactions
-from app.core.exeptions import ProductNotFoundError , InvalidTransactionError , InvalidTransactionTypeError
+from backend.app.core.exceptions import ProductNotFoundError , InvalidTransactionError , InvalidTransactionTypeError
 
 class TransactionsRepository:
 

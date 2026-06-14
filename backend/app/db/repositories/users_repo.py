@@ -1,11 +1,12 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, Tuple
-from sqlalchemy import select
+from sqlalchemy import select , update
+from datetime import datetime, timezone
 
 from app.db.models.users import Users
 from app.core.config import settings
 from app.utils.pas_hashing import get_hash_pass, match_password
-
+from app.core.exceptions import InvalidPasswordError , UserNotFindError
 class UserRepository:
 
     def __init__(self, db: AsyncSession) -> None:
@@ -13,6 +14,10 @@ class UserRepository:
 
     async def get_by_id(self, user_id) -> Optional[Users]:
         result = await self.db.execute(select(Users).where(Users.id == user_id))
+        return result.scalar_one_or_none()
+    
+    async def get_by_name(self, username) -> Optional[Users]:
+        result = await self.db.execute(select(Users).where(Users.username == username))
         return result.scalar_one_or_none()
     
     async def _add_user(self, username: str, password: str, 
@@ -59,3 +64,25 @@ class UserRepository:
                                        password=password,
                                        phone=phone)
         return admin
+    
+    async def update_login_time(self, user_id)->None:
+        query = (
+                update(Users)
+                .where(Users.id == user_id)
+                .values(last_login = datetime.now(timezone.utc)) 
+            )
+        try:
+            await self.db.execute(query)
+            await self.db.commit()
+        except Exception as e:
+            await self.db.rollback()
+            raise e
+    
+    async def user_login(self, username:str , password:str)->Users:
+        user = await self.get_by_name(username=username)
+        if not user:
+            raise UserNotFindError()
+        if not match_password(user.hashed_password , password):
+            raise InvalidPasswordError()
+        await self.update_login_time(user.id)
+        return user
