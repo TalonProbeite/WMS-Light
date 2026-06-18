@@ -7,6 +7,8 @@ from app.core.config import settings
 from app.db.database import init_db
 from app.core.logger import setup_logging
 from app.api.users_routes import router as UsersRouter
+from app.api.products_routes import router as ProductRouter
+from app.api.transaction_routes import router as TransactionRouter
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -34,3 +36,5 @@ app.add_middleware(
 
 
 app.include_router(UsersRouter)
+app.include_router(ProductRouter)
+app.include_router(TransactionRouter)

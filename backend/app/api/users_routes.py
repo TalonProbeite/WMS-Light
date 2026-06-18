@@ -12,7 +12,7 @@ from app.core.exceptions import InvalidPasswordError , UserNotFindError , JWTTok
 from app.api.deps import RoleChecker
 
 
-router = APIRouter(prefix="/users", tags=["Auth"]) 
+router = APIRouter(prefix="/users", tags=["Users"]) 
 
 
 @router.post("/login", response_model=AuthResponse)
@@ -95,18 +95,6 @@ async def get_all_workers(db:AsyncSession= Depends(get_db)):
         logger.exception(f"Unexpected error: {e.__cause__}")
         raise HTTPException(status_code=500, detail="Internal server error")
     
-
-@router.get("/admins", response_model=List[UserInfo],dependencies=[Depends(RoleChecker(["admin", "superadmin"]))])
-async def get_all_admins(db:AsyncSession= Depends(get_db)):
-    user_repo = UserRepository(db)
-    try:
-        users = await user_repo.get_all_admins()
-        return users
-    except Exception as e:
-        logger.exception(f"Unexpected error: {e.__cause__}")
-        raise HTTPException(status_code=500, detail="Internal server error")
-    
-
 
 @router.get("/admins", response_model=List[UserInfo],dependencies=[Depends(RoleChecker(["admin", "superadmin"]))])
 async def get_all_admins(db:AsyncSession= Depends(get_db)):
