@@ -80,10 +80,12 @@ class ProductsRepository:
             raise e
         
     async def create_product_with_stock(self, name: str, 
-                                        category_id: Optional[int], category_name: Optional[str],
                                         sku: str, 
                                         qr_code_uuid: str, initial_quantity: int,
+                                        category_id: Optional[int]=None, category_name: Optional[str]=None,
                                         description: Optional[str] = None) -> Products:
+        if category_id == None and category_name == None:
+            raise TypeError()
         new_stock = Stock(quantity=initial_quantity)
         
         if category_name:

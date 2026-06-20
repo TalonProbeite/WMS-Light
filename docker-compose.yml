@@ -1,0 +1,56 @@
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: wms_postgres_db
+    restart: always
+    
+    env_file:
+      - ./backend/.env
+    
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - wms_network
+
+  backend:
+    build: ./backend
+    container_name: wms_fastapi_backend
+    restart: always
+    ports:
+      - "8000:8000"
+    env_file:
+      - ./backend/.env
+    
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@db:5432/${DB_NAME}
+    depends_on:
+      - db
+    volumes:
+      - backend_logs:/app/logs
+    networks:
+      - wms_network
+
+  frontend:
+    build: ./frontend
+    container_name: wms_nginx_frontend
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - wms_network
+
+volumes:
+  postgres_data:
+  backend_logs:
+
+networks:
+  wms_network:
+    driver: bridge
