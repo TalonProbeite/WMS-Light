@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Склад — Кладовщик</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+<div class="app-layout">
+
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">СК</div>
+      <div class="brand-text">
+        СклАдной
+        <span class="brand-sub">Система учёта</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Мои операции</div>
+      <div class="nav-item active" data-nav="my-tx" onclick="nav('my-tx')">
+        <span class="nav-icon">↕</span> История операций
+      </div>
+      <div class="nav-item" data-nav="new-tx" onclick="nav('new-tx')">
+        <span class="nav-icon">＋</span> Новая операция
+      </div>
+      <div class="nav-item" data-nav="stock-view" onclick="nav('stock-view')">
+        <span class="nav-icon">📦</span> Остатки (просмотр)
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar" id="sidebar-avatar">–</div>
+        <div class="user-details">
+          <div class="user-name" id="sidebar-username">...</div>
+          <div class="user-role">Кладовщик</div>
+        </div>
+      </div>
+      <button class="btn btn-secondary btn-sm btn-full" onclick="API.auth.logout()">
+        Выйти
+      </button>
+    </div>
+  </aside>
+
+  <div class="main-area">
+    <header class="page-header">
+      <div class="page-title" id="page-title">История моих операций</div>
+    </header>
+
+    <main class="page-content">
+
+      <!-- МОИ ТРАНЗАКЦИИ -->
+      <div data-section="my-tx">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">История моих операций</div>
+            <div class="toolbar">
+              <select class="form-control" id="my-tx-type" style="width:150px" onchange="myTxModule.load()">
+                <option value="">Все операции</option>
+                <option value="incoming">Только приход</option>
+                <option value="outgoing">Только расход</option>
+              </select>
+              <input type="date" class="form-control" id="my-tx-from" style="width:145px" onchange="myTxModule.load()" />
+              <input type="date" class="form-control" id="my-tx-to"   style="width:145px" onchange="myTxModule.load()" />
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Дата / Время</th>
+                  <th>Товар</th>
+                  <th>Тип</th>
+                  <th>Количество</th>
+                </tr>
+              </thead>
+              <tbody id="my-tx-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="my-tx-pagination"></div>
+        </div>
+      </div>
+
+      <!-- НОВАЯ ОПЕРАЦИЯ -->
+      <div data-section="new-tx" style="display:none">
+        <div class="card" style="max-width:520px">
+          <div class="card-header">
+            <div class="card-title">Провести операцию</div>
+          </div>
+          <div class="card-body">
+            <div id="new-tx-alert"   class="alert alert-error"   style="display:none"></div>
+            <div id="new-tx-success" class="alert alert-success" style="display:none"></div>
+
+            <form id="form-new-tx" novalidate>
+              <div class="form-group">
+                <label>Тип операции <span style="color:var(--danger)">*</span></label>
+                <select name="transaction_type" class="form-control" required>
+                  <option value="">— выберите —</option>
+                  <option value="incoming">↑ Приход (поступление товара)</option>
+                  <option value="outgoing">↓ Расход (выдача товара)</option>
+                </select>
+                <span class="field-error" data-error="transaction_type"></span>
+              </div>
+              <div class="form-group">
+                <label>Товар <span style="color:var(--danger)">*</span></label>
+                <select name="product_id" class="form-control" required id="new-tx-product">
+                  <option value="">— выберите товар —</option>
+                </select>
+                <span class="field-error" data-error="product_id"></span>
+                <span id="product-stock-hint" class="text-muted" style="display:none;margin-top:4px"></span>
+              </div>
+              <div class="form-group">
+                <label>Количество <span style="color:var(--danger)">*</span></label>
+                <input type="number" name="quantity" class="form-control" min="1" placeholder="1" required />
+                <span class="field-error" data-error="quantity"></span>
+              </div>
+              <button type="button" class="btn btn-primary" id="btn-submit-tx" onclick="newTxModule.submit()">
+                Провести операцию
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- ПРОСМОТР ОСТАТКОВ -->
+      <div data-section="stock-view" style="display:none">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Текущие остатки</div>
+            <input type="text" class="search-input" id="w-stock-search" placeholder="Поиск…" oninput="workerStockModule.onSearch()" />
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Артикул</th>
+                  <th>Название</th>
+                  <th>Категория</th>
+                  <th>Остаток</th>
+                  <th>Обновлено</th>
+                </tr>
+              </thead>
+              <tbody id="w-stock-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="w-stock-pagination"></div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/ui.js"></script>
+<script src="/js/worker.js"></script>
+</body>
+</html>

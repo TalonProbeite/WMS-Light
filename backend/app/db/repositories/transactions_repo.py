@@ -7,7 +7,8 @@ from datetime import datetime, timezone
 from app.db.models.stock import Stock
 from app.db.models.products import Products
 from app.db.models.transactions import Transactions
-from backend.app.core.exceptions import ProductNotFoundError , InvalidTransactionError , InvalidTransactionTypeError
+from app.db.models.users import Users
+from app.core.exceptions import ProductNotFoundError , InvalidTransactionError , InvalidTransactionTypeError , UserNotFindError
 
 class TransactionsRepository:
 
@@ -75,3 +76,74 @@ class TransactionsRepository:
             await self.db.rollback()
             raise e
 
+
+        
+    async def get_all_transactions(
+        self, 
+        limit: int, 
+        offset: int,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        sort_order: str = "desc"  
+    ):
+        
+        query = select(Transactions)
+
+        if date_from and date_to:
+           
+            query = query.where(Transactions.created_at.between(date_from, date_to))
+        elif date_from:
+            
+            query = query.where(Transactions.created_at >= date_from)
+        elif date_to:
+           
+            query = query.where(Transactions.created_at <= date_to)
+
+        if sort_order.lower() == "asc":
+            query = query.order_by(Transactions.created_at.asc())
+        else:
+            query = query.order_by(Transactions.created_at.desc())
+        
+        query = query.limit(limit).offset(offset)
+        result = await self.db.execute(query)
+        return result.scalars().all()
+    
+    
+    async def get_user_transactions(
+        self, 
+        limit: int, 
+        offset: int,
+        user_id: Optional[int] = None,
+        user_name: Optional[str] = None,  
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        sort_order: str = "desc"  
+    ):
+       
+        if user_name:
+            res = await self.db.execute(select(Users).where(Users.username == user_name))
+            user = res.scalar_one_or_none()
+            if not user:
+                raise UserNotFindError()
+            user_id = user.id  
+
+        
+        query = select(Transactions).where(Transactions.user_id == user_id)
+
+        
+        if date_from and date_to:
+            query = query.where(Transactions.created_at.between(date_from, date_to))
+        elif date_from:
+            query = query.where(Transactions.created_at >= date_from)
+        elif date_to:
+            query = query.where(Transactions.created_at <= date_to)
+
+      
+        if sort_order.lower() == "asc":
+            query = query.order_by(Transactions.created_at.asc())
+        else:
+            query = query.order_by(Transactions.created_at.desc())
+        
+        query = query.limit(limit).offset(offset)
+        result = await self.db.execute(query)
+        return result.scalars().all()

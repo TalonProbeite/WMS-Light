@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Склад — Панель управления</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+<div class="app-layout">
+
+  <!-- ═══ САЙДБАР ═══ -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">
+      <div class="brand-icon">СК</div>
+      <div class="brand-text">
+        СклАдной
+        <span class="brand-sub">Система учёта</span>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Основное</div>
+      <div class="nav-item active" data-nav="overview" onclick="nav('overview')">
+        <span class="nav-icon">▦</span> Обзор
+      </div>
+      <div class="nav-item" data-nav="stock" onclick="nav('stock')">
+        <span class="nav-icon">📦</span> Остатки
+      </div>
+      <div class="nav-item" data-nav="transactions" onclick="nav('transactions')">
+        <span class="nav-icon">↕</span> Движение товаров
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Справочники</div>
+      <div class="nav-item" data-nav="products" onclick="nav('products')">
+        <span class="nav-icon">🗒</span> Товары
+      </div>
+      <div class="nav-item" data-nav="categories" onclick="nav('categories')">
+        <span class="nav-icon">🗂</span> Категории
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="sidebar-section-label">Администрирование</div>
+      <div class="nav-item" data-nav="users" onclick="nav('users')">
+        <span class="nav-icon">👥</span> Пользователи
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div class="user-info">
+        <div class="user-avatar" id="sidebar-avatar">–</div>
+        <div class="user-details">
+          <div class="user-name" id="sidebar-username">...</div>
+          <div class="user-role" id="sidebar-role">...</div>
+        </div>
+      </div>
+      <button class="btn btn-secondary btn-sm btn-full" onclick="API.auth.logout()">
+        Выйти
+      </button>
+    </div>
+  </aside>
+
+  <!-- ═══ ОСНОВНАЯ ОБЛАСТЬ ═══ -->
+  <div class="main-area">
+
+    <header class="page-header">
+      <div class="page-title" id="page-title">Обзор</div>
+      <div class="page-actions" id="page-actions"></div>
+    </header>
+
+    <main class="page-content">
+
+      <!-- ─── ОБЗОР ─────────────────────────────── -->
+      <div data-section="overview">
+        <div class="stats-grid" id="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">Товарных позиций</div>
+            <div class="stat-value blue" id="stat-products">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Категорий</div>
+            <div class="stat-value" id="stat-categories">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Операций сегодня</div>
+            <div class="stat-value green" id="stat-today">—</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">Позиций с нулевым остатком</div>
+            <div class="stat-value red" id="stat-zero">—</div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Последние операции</div>
+            <button class="btn btn-secondary btn-sm" onclick="nav('transactions')">Все →</button>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Дата</th>
+                  <th>Товар</th>
+                  <th>Тип</th>
+                  <th>Кол-во</th>
+                  <th>Сотрудник</th>
+                </tr>
+              </thead>
+              <tbody id="recent-tx-tbody">
+                <tr><td colspan="5" style="text-align:center;padding:28px"><span class="spinner dark"></span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── ОСТАТКИ ───────────────────────────── -->
+      <div data-section="stock" style="display:none">
+        <div class="card mb-24">
+          <div class="card-header">
+            <div class="card-title">Текущие остатки</div>
+            <div class="toolbar">
+              <input type="text" class="search-input" id="stock-search" placeholder="Поиск по названию или артикулу…" oninput="stockModule.onSearch(this.value)" />
+              <label style="font-size:0.82rem;display:flex;align-items:center;gap:6px;cursor:pointer">
+                <input type="checkbox" id="stock-low" onchange="stockModule.onLow()" />
+                Только дефицит (≤5)
+              </label>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Артикул</th>
+                  <th style="cursor:pointer" onclick="stockModule.sortBy('name')">Название ↕</th>
+                  <th>Категория</th>
+                  <th style="cursor:pointer" onclick="stockModule.sortBy('quantity')">Остаток ↕</th>
+                  <th style="cursor:pointer" onclick="stockModule.sortBy('stock_updated_at')">Обновлено ↕</th>
+                  <th>Действия</th>
+                </tr>
+              </thead>
+              <tbody id="stock-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="stock-pagination"></div>
+        </div>
+      </div>
+
+      <!-- ─── ТРАНЗАКЦИИ ────────────────────────── -->
+      <div data-section="transactions" style="display:none">
+        <div class="card mb-24">
+          <div class="card-header">
+            <div class="card-title">История движений товаров</div>
+            <div class="toolbar">
+              <select class="form-control" id="tx-type-filter" style="width:150px" onchange="txModule.load()">
+                <option value="">Все операции</option>
+                <option value="incoming">Только приход</option>
+                <option value="outgoing">Только расход</option>
+              </select>
+              <input type="date" class="form-control" id="tx-from" style="width:145px" onchange="txModule.load()" />
+              <input type="date" class="form-control" id="tx-to"   style="width:145px" onchange="txModule.load()" />
+              <input type="text" class="search-input" id="tx-user-filter" placeholder="Фильтр по сотруднику…" style="width:180px" oninput="txModule.onUserFilter(this.value)" />
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Дата / Время</th>
+                  <th>Товар</th>
+                  <th>Артикул</th>
+                  <th>Тип</th>
+                  <th>Кол-во</th>
+                  <th>Сотрудник</th>
+                </tr>
+              </thead>
+              <tbody id="tx-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="tx-pagination"></div>
+        </div>
+      </div>
+
+      <!-- ─── ТОВАРЫ ─────────────────────────────── -->
+      <div data-section="products" style="display:none">
+        <div class="card mb-24">
+          <div class="card-header">
+            <div class="card-title">Справочник товаров</div>
+            <div class="toolbar">
+              <input type="text" class="search-input" id="prod-search" placeholder="Поиск по названию или SKU…" oninput="productsModule.onSearch()" />
+              <select class="form-control" id="prod-cat-filter" style="width:170px" onchange="productsModule.load()">
+                <option value="">Все категории</option>
+              </select>
+              <select class="form-control" id="prod-sort-by" style="width:145px" onchange="productsModule.load()">
+                <option value="name">Сортировка: Название</option>
+                <option value="sku">Сортировка: Артикул</option>
+                <option value="quantity">Сортировка: Остаток</option>
+                <option value="stock_updated_at">Сортировка: Дата</option>
+              </select>
+              <select class="form-control" id="prod-sort-order" style="width:90px" onchange="productsModule.load()">
+                <option value="asc">По возр.</option>
+                <option value="desc">По убыв.</option>
+              </select>
+              <button class="btn btn-primary btn-sm" onclick="productsModule.openCreate()">+ Добавить товар</button>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Артикул</th>
+                  <th>Название</th>
+                  <th>Категория</th>
+                  <th>Остаток</th>
+                  <th>Описание</th>
+                  <th>Действия</th>
+                </tr>
+              </thead>
+              <tbody id="products-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="prod-pagination"></div>
+        </div>
+      </div>
+
+      <!-- ─── КАТЕГОРИИ ─────────────────────────── -->
+      <div data-section="categories" style="display:none">
+        <div class="card mb-24">
+          <div class="card-header">
+            <div class="card-title">Категории товаров</div>
+            <button class="btn btn-primary btn-sm" onclick="categoriesModule.openCreate()">+ Добавить категорию</button>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>№</th>
+                  <th>Название</th>
+                  <th>Описание</th>
+                  <th>Действия</th>
+                </tr>
+              </thead>
+              <tbody id="categories-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── ПОЛЬЗОВАТЕЛИ ──────────────────────── -->
+      <div data-section="users" style="display:none">
+        <div class="card mb-24">
+          <div class="card-header">
+            <div class="card-title">Пользователи системы</div>
+            <div class="toolbar">
+              <input type="text" class="search-input" id="user-search" placeholder="Поиск по логину…" oninput="usersModule.onSearch(this.value)" />
+              <button class="btn btn-primary btn-sm" onclick="usersModule.openCreate()">+ Добавить пользователя</button>
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Логин</th>
+                  <th>Роль</th>
+                  <th>Телефон</th>
+                  <th>Последний вход</th>
+                  <th>Действия</th>
+                </tr>
+              </thead>
+              <tbody id="users-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ═══ МОДАЛЬНЫЕ ОКНА ═══ -->
+
+<!-- Категория -->
+<div class="modal-overlay" id="modal-category">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-category-title">Категория</div>
+      <button class="modal-close" onclick="UI.closeModal('modal-category')">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-category" novalidate>
+        <input type="hidden" name="id" />
+        <div class="form-group">
+          <label>Название <span style="color:var(--danger)">*</span></label>
+          <input type="text" name="name" class="form-control" placeholder="Инструменты" required />
+          <span class="field-error" data-error="name"></span>
+        </div>
+        <div class="form-group">
+          <label>Описание</label>
+          <textarea name="description" class="form-control" placeholder="Описание категории…"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeModal('modal-category')">Отмена</button>
+      <button class="btn btn-primary" id="btn-save-category" onclick="categoriesModule.save()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Товар -->
+<div class="modal-overlay" id="modal-product">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-product-title">Товар</div>
+      <button class="modal-close" onclick="UI.closeModal('modal-product')">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-product" novalidate>
+        <input type="hidden" name="id" />
+        <div class="grid-2">
+          <div class="form-group">
+            <label>Название <span style="color:var(--danger)">*</span></label>
+            <input type="text" name="name" class="form-control" required />
+            <span class="field-error" data-error="name"></span>
+          </div>
+          <div class="form-group">
+            <label>Артикул (SKU) <span style="color:var(--danger)">*</span></label>
+            <input type="text" name="sku" class="form-control" required />
+            <span class="field-error" data-error="sku"></span>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Категория</label>
+          <select name="category_id" class="form-control">
+            <option value="">— без категории —</option>
+          </select>
+        </div>
+        <div class="grid-2">
+          <div class="form-group">
+            <label>QR-код UUID <span style="color:var(--danger)">*</span></label>
+            <input type="text" name="qr_code_uuid" class="form-control" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" required />
+            <span class="field-error" data-error="qr_code_uuid"></span>
+          </div>
+          <div class="form-group">
+            <label>Начальный остаток</label>
+            <input type="number" name="initial_quantity" class="form-control" value="0" min="0" />
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Описание</label>
+          <textarea name="description" class="form-control"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeModal('modal-product')">Отмена</button>
+      <button class="btn btn-primary" id="btn-save-product" onclick="productsModule.save()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Пользователь -->
+<div class="modal-overlay" id="modal-user">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modal-user-title">Пользователь</div>
+      <button class="modal-close" onclick="UI.closeModal('modal-user')">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-user" novalidate>
+        <input type="hidden" name="id" />
+        <div class="form-group">
+          <label>Логин <span style="color:var(--danger)">*</span></label>
+          <input type="text" name="username" class="form-control" required autocomplete="off" />
+          <span class="field-error" data-error="username"></span>
+        </div>
+        <div class="form-group">
+          <label>Пароль <span style="color:var(--danger)" id="pw-required">*</span></label>
+          <input type="password" name="password" class="form-control" autocomplete="new-password" />
+          <span class="field-error" data-error="password"></span>
+          <span class="text-muted" id="pw-hint" style="display:none">Оставьте пустым, чтобы не менять</span>
+        </div>
+        <div class="form-group">
+          <label>Телефон</label>
+          <input type="text" name="phone" class="form-control" placeholder="+7 900 000-00-00" />
+        </div>
+        <div class="form-group">
+          <label>Роль <span style="color:var(--danger)">*</span></label>
+          <select name="role" class="form-control" required>
+            <option value="">— выберите —</option>
+            <option value="worker">Кладовщик</option>
+            <option value="admin" id="opt-admin">Администратор</option>
+          </select>
+          <span class="field-error" data-error="role"></span>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeModal('modal-user')">Отмена</button>
+      <button class="btn btn-primary" id="btn-save-user" onclick="usersModule.save()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Новая операция -->
+<div class="modal-overlay" id="modal-tx">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Новая операция</div>
+      <button class="modal-close" onclick="UI.closeModal('modal-tx')">✕</button>
+    </div>
+    <div class="modal-body">
+      <form id="form-tx" novalidate>
+        <div class="form-group">
+          <label>Тип операции <span style="color:var(--danger)">*</span></label>
+          <select name="transaction_type" class="form-control" required>
+            <option value="">— выберите —</option>
+            <option value="incoming">↑ Приход (поступление)</option>
+            <option value="outgoing">↓ Расход (выдача)</option>
+          </select>
+          <span class="field-error" data-error="transaction_type"></span>
+        </div>
+        <div class="form-group">
+          <label>Товар <span style="color:var(--danger)">*</span></label>
+          <select name="product_id" class="form-control" required id="tx-product-sel">
+            <option value="">— выберите —</option>
+          </select>
+          <span class="field-error" data-error="product_id"></span>
+          <span id="tx-stock-hint" class="text-muted" style="display:none;margin-top:4px"></span>
+        </div>
+        <div class="form-group">
+          <label>Количество <span style="color:var(--danger)">*</span></label>
+          <input type="number" name="quantity" class="form-control" min="1" placeholder="1" required />
+          <span class="field-error" data-error="quantity"></span>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeModal('modal-tx')">Отмена</button>
+      <button class="btn btn-primary" id="btn-save-tx" onclick="txModule.save()">Провести операцию</button>
+    </div>
+  </div>
+</div>
+
+<!-- Корректировка остатка -->
+<div class="modal-overlay" id="modal-adjust">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">Корректировка остатка</div>
+      <button class="modal-close" onclick="UI.closeModal('modal-adjust')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="adjust-product-name" style="margin-bottom:14px;font-weight:600;color:var(--text)"></p>
+      <form id="form-adjust" novalidate>
+        <input type="hidden" name="product_id" />
+        <div class="form-group">
+          <label>Новый остаток <span style="color:var(--danger)">*</span></label>
+          <input type="number" name="quantity" class="form-control" min="0" required />
+          <span class="field-error" data-error="quantity"></span>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeModal('modal-adjust')">Отмена</button>
+      <button class="btn btn-primary" id="btn-save-adjust" onclick="stockModule.saveAdjust()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
+<script src="/js/api.js"></script>
+<script src="/js/ui.js"></script>
+<script src="/js/dashboard.js"></script>
+</body>
+</html>
