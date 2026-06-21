@@ -411,7 +411,7 @@ const categoriesModule = (() => {
           <td class="text-muted">${c.description || '—'}</td>
           <td><div class="td-actions">
             <button class="btn btn-secondary btn-sm" onclick="categoriesModule.openEdit(${c.id},'${c.name.replace(/'/g,"\\'")}','${(c.description||'').replace(/'/g,"\\'")}')">Изм.</button>
-            <button class="btn btn-danger btn-sm" onclick="categoriesModule.remove(${c.id},'${c.name.replace(/'/g,"\\'")}')">Удал.</button>
+            <button class="btn btn-danger btn-sm" onclick="categoriesModule.remove('${c.name.replace(/'/g,"\\'")}')">Удал.</button>
           </div></td>
         </tr>`).join('') : UI.renderEmptyRow(4, 'Категорий нет');
     } catch (err) { tbody.innerHTML = UI.renderEmptyRow(4, 'Ошибка'); UI.toastError(err.message); }
@@ -436,18 +436,32 @@ const categoriesModule = (() => {
     if (!data.name) { UI.showFieldError('name', 'Введите название'); return; }
     UI.btnLoading(btn, true);
     try {
-      if (data.id) { await API.categories.update(data.id, { name: data.name, description: data.description }); UI.toastSuccess('Обновлено'); }
-      else         { await API.categories.create({ name: data.name, description: data.description });          UI.toastSuccess('Добавлено'); }
+      if (data.id) {
+        await API.categories.update(data.id, { name: data.name, description: data.description || null });
+        UI.toastSuccess('Категория обновлена');
+      } else {
+        await API.categories.create({ name: data.name, description: data.description || null });
+        UI.toastSuccess('Категория добавлена');
+      }
       UI.closeModal('modal-category');
       load();
     } catch (err) { UI.toastError(err.message); }
     finally       { UI.btnLoading(btn, false); }
   };
 
-  const remove = async (id, name) => {
+  const remove = async (name) => {
     if (!UI.confirm(`Удалить категорию «${name}»?`)) return;
-    try { await API.categories.remove(id); UI.toastSuccess('Удалено'); load(); }
-    catch (err) { UI.toastError(err.message); }
+    try {
+      await API.categories.remove(name);
+      UI.toastSuccess('Категория удалена');
+      load();
+    } catch (err) {
+      if (err.status === 400) {
+        UI.toastError('Невозможно удалить категорию, так как в ней содержатся товары. Сначала перенесите товары в другую категорию!');
+      } else {
+        UI.toastError(err.message);
+      }
+    }
   };
 
   return { load, openCreate, openEdit, save, remove };
