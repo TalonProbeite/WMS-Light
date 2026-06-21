@@ -1,7 +1,17 @@
 (() => {
-  // Не делаем авто-редирект при наличии юзера в localStorage —
-  // кука могла протухнуть, пусть пользователь войдёт явно.
-  // Редирект произойдёт только после успешного POST /users/login.
+  // При загрузке проверяем сессию через GET /users/me.
+  // Если кука жива — редиректим сразу, без повторного логина.
+  (async () => {
+    try {
+      const user = await API.auth.me();
+      if (user && user.role) {
+        API.saveUser && API.saveUser(user); // обновляем localStorage
+        redirectByRole(user.role);
+      }
+    } catch {
+      // 401/403 — кука мертва, остаёмся на странице логина
+    }
+  })();
 
   const form  = document.getElementById('login-form');
   const btn   = document.getElementById('login-btn');

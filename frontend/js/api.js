@@ -41,19 +41,16 @@ const API = (() => {
   const put  = (path, body) => request('PUT',    path, body);
   const del  = (path)       => request('DELETE', path);
 
-  // POST /users/login        → { username, role }
-  // POST /users/workers      → { success: true }   (admin, superadmin)
-  // POST /users/admins       → { success: true }   (superadmin only)
-  // GET  /users/             → [UserInfo]           (admin, superadmin)
-  // GET  /users/workers      → [UserInfo]
-  // GET  /users/admins       → [UserInfo]
-  // GET  /users/search?username=  → UserInfo
   const auth = {
+    // POST /users/login → { username, role }
     login: async (username, password) => {
       const data = await post('/users/login', { username, password });
       saveUser({ username: data.username, role: data.role });
       return data;
     },
+    // GET /users/me → { username, role, phone, last_login }
+    // Используется для проверки живости сессии (кука валидна?)
+    me: () => get('/users/me'),
     logout: () => {
       clearUser();
       window.location.href = '/index.html';
@@ -61,40 +58,46 @@ const API = (() => {
   };
 
   const users = {
+    // GET /users/              → [UserInfo]
     list:         ()         => get('/users/'),
+    // GET /users/workers       → [UserInfo]
     listWorkers:  ()         => get('/users/workers'),
+    // GET /users/admins        → [UserInfo]
     listAdmins:   ()         => get('/users/admins'),
+    // GET /users/search?username=
     search:       (username) => get(`/users/search?username=${encodeURIComponent(username)}`),
-    createWorker: (body)     => post('/users/workers', body), // { username, password, phone? }
-    createAdmin:  (body)     => post('/users/admins',  body), // { username, password, phone? }
+    // POST /users/workers  { username, password, phone? }  (admin, superadmin)
+    createWorker: (body)     => post('/users/workers', body),
+    // POST /users/admins   { username, password, phone? }  (superadmin only)
+    createAdmin:  (body)     => post('/users/admins',  body),
   };
 
-  // POST /products/create    { name, sku, qr_code_uuid, category_id?, category_name?, initial_quantity?, description? }
-  // GET  /products/          [ProductDetail]  ?limit&offset&search&category_id&category_name&sort_by&sort_order
-  // GET  /products/single    ProductDetail    ?product_id=  |  ?name=
   const products = {
+    // GET /products/?limit&offset&search&category_id&category_name&sort_by&sort_order
     list: (params = {}) => {
       const q = new URLSearchParams(params).toString();
       return get(`/products/${q ? '?' + q : ''}`);
     },
+    // GET /products/single?product_id=  |  ?name=
     single: (params = {}) => {
       return get(`/products/single?${new URLSearchParams(params).toString()}`);
     },
+    // POST /products/create
     create: (body) => post('/products/create', body),
   };
 
   const categories = {
-    list:   ()           => get('/categories'),
-    create: (body)       => post('/categories', body),
-    update: (id, body)   => put(`/categories/${id}`, body),
-    remove: (id)         => del(`/categories/${id}`),
+    // GET /categories/  → [{ id, name, description }]  — весь список, без пагинации
+    list: () => get('/categories/'),
+    // POST /categories/create  { name, description? }
+    create: (body) => post('/categories/create', body),
+    // PUT /categories/{cat_id}  { name, description? }
+    update: (id, body) => put(`/categories/${id}`, body),
+    // DELETE /categories/{cat_name}  — удаление по ИМЕНИ, не по ID
+    // 400 если в категории ещё есть товары
+    remove: (name) => del(`/categories/${encodeURIComponent(name)}`),
   };
 
-  // POST /transactions/create     { quantity, transaction_type, product_id }
-  // GET  /transactions/           история текущего юзера  (все роли)
-  // GET  /transactions/get_all    история всех юзеров     (admin, superadmin)
-  // GET  /transactions/user       история конкретного     (admin, superadmin)  ?user_name=
-  // Общие параметры: limit, offset, date_from, date_to, sort_order
   const _txParams = (p) => {
     const out = {};
     if (p.limit)      out.limit      = p.limit;
@@ -106,19 +109,23 @@ const API = (() => {
   };
 
   const transactions = {
+    // GET /transactions/  — своя история (все роли)
     my: (params = {}) => {
       const q = new URLSearchParams(_txParams(params)).toString();
       return get(`/transactions/${q ? '?' + q : ''}`);
     },
+    // GET /transactions/get_all  — история всех (admin, superadmin)
     all: (params = {}) => {
       const q = new URLSearchParams(_txParams(params)).toString();
       return get(`/transactions/get_all${q ? '?' + q : ''}`);
     },
+    // GET /transactions/user?user_name=  (admin, superadmin)
     byUser: (userName, params = {}) => {
       const p = _txParams(params);
       p.user_name = userName;
       return get(`/transactions/user?${new URLSearchParams(p).toString()}`);
     },
+    // POST /transactions/create  { quantity, transaction_type, product_id }
     create: (body) => post('/transactions/create', {
       quantity:         body.quantity,
       transaction_type: body.transaction_type,

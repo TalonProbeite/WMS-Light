@@ -79,3 +79,23 @@ async def get_all_products(
     except Exception:
         logger.exception("Unexpected error in get_all_products")
         raise HTTPException(status_code=500, detail="Internal server error")
+    
+
+
+@router.delete("/{product_id}")
+async def delete_product(
+    product_id: int,
+    db: AsyncSession = Depends(get_db),
+    user_info: dict = Depends(RoleChecker(["admin", "superadmin"]))
+):
+    repo = ProductsRepository(db=db)
+    try:
+        deleted_count = await repo.delete_product_by_id(prod_id=product_id)
+        if deleted_count == 0:
+            raise HTTPException(status_code=404, detail="Product not found")
+        return {"success": True, "deleted_records": deleted_count}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Unexpected error in delete_product: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
