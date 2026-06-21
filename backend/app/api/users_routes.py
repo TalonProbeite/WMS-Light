@@ -120,3 +120,25 @@ async def search_user_by_name(username: str, db: AsyncSession = Depends(get_db))
     except Exception as e:
         logger.exception("Unexpected error during user search")
         raise HTTPException(status_code=500, detail="Internal server error")
+    
+
+@router.get("/me", response_model=UserInfo)
+async def get_me(
+    user_info: dict = Depends(RoleChecker(["worker", "admin", "superadmin"]))):
+    return user_info
+
+
+
+@router.post("/logout")
+async def logout(response: Response):
+    try:
+        response.delete_cookie(
+            key="access_token",
+            httponly=True,
+            secure=True,
+            samesite="strict"
+        )
+        return {"detail": "Successfully logged out"}
+    except Exception as e:
+        logger.exception(f"Unexpected error during logout: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
