@@ -164,20 +164,20 @@ const txModule = (() => {
   };
 
   const load = async () => {
-    const from  = document.getElementById('tx-from')?.value;
-    const to    = document.getElementById('tx-to')?.value;
-    const tbody = document.getElementById('tx-tbody');
+    const from   = document.getElementById('tx-from')?.value;
+    const to     = document.getElementById('tx-to')?.value;
+    const txType = document.getElementById('tx-type-filter')?.value || '';
+    const tbody  = document.getElementById('tx-tbody');
     tbody.innerHTML = UI.renderLoadingRow(6);
 
-    // Подгружаем карту продуктов если пустая
     if (!Object.keys(prodMap).length) await loadProdMap();
 
     try {
       const params = { limit: LIMIT, offset, sort_order: 'desc' };
-      if (from) params.date_from = from + 'T00:00:00';
-      if (to)   params.date_to   = to   + 'T23:59:59';
+      if (from)   params.date_from        = from + 'T00:00:00';
+      if (to)     params.date_to          = to   + 'T23:59:59';
+      if (txType) params.transaction_type = txType;  // 'arrival' | 'departure'
 
-      // Если задан фильтр по юзеру — используем /transactions/user, иначе /transactions/my
       let list;
       if (pendingUser) {
         list = await API.transactions.byUser(pendingUser, params);
@@ -303,6 +303,7 @@ const productsModule = (() => {
           <td class="text-muted" style="max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.description || '—'}</td>
           <td><div class="td-actions">
             <button class="btn btn-secondary btn-sm" onclick="productsModule.openDetail(${p.id})">Карточка</button>
+            ${currentUser && currentUser.role !== 'worker' ? `<button class="btn btn-danger btn-sm" onclick="productsModule.remove(${p.id},'${p.name.replace(/'/g,"\\'")}')">Удал.</button>` : ''}
           </div></td>
         </tr>`;
       }).join('') : UI.renderEmptyRow(6, 'Товары не найдены');
@@ -393,7 +394,17 @@ const productsModule = (() => {
     }
   });
 
-  return { init, load, onSearch, openCreate, openDetail, save };
+  // DELETE /products/{product_id} — только admin, superadmin
+  const remove = async (id, name) => {
+    if (!UI.confirm(`Удалить товар «${name}»? Это действие необратимо.`)) return;
+    try {
+      await API.products.remove(id);
+      UI.toastSuccess('Товар удалён');
+      load();
+    } catch (err) { UI.toastError(err.message); }
+  };
+
+  return { init, load, onSearch, openCreate, openDetail, save, remove };
 })();
 
 // ─── КАТЕГОРИИ ────────────────────────────────────────────────
@@ -541,19 +552,17 @@ const usersModule = (() => {
 })();
 
 // ─── ПАГИНАЦИЯ ────────────────────────────────────────────────
-function renderPagination(cid, count, limit, cur, cb) {
+// Бэкенд не возвращает total — используем hasMore:
+// если пришло ровно limit записей, значит следующая страница может существовать.
+function renderPagination(cid, received, limit, cur, cb) {
   const el = document.getElementById(cid);
   if (!el) return;
-  const pages = Math.ceil(count / limit) || 1;
-  if (pages <= 1) { el.innerHTML = ''; return; }
+  const hasMore = received >= limit;
+  const hasPrev = cur > 1;
+  if (!hasMore && !hasPrev) { el.innerHTML = ''; return; }
   let h = `<span class="text-muted" style="font-size:0.78rem;margin-right:8px">Стр. ${cur}</span>`;
-  h += `<button class="page-btn" ${cur===1?'disabled':''} onclick="(${cb.toString()})(${cur-1})">‹</button>`;
-  const s = Math.max(1, cur-2), e = Math.min(pages, cur+2);
-  if (s > 1) h += `<button class="page-btn" onclick="(${cb.toString()})(1)">1</button>`;
-  if (s > 2) h += `<span style="padding:0 4px">…</span>`;
-  for (let p = s; p <= e; p++) h += `<button class="page-btn ${p===cur?'active':''}" onclick="(${cb.toString()})(${p})">${p}</button>`;
-  if (e < pages-1) h += `<span style="padding:0 4px">…</span>`;
-  if (e < pages)   h += `<button class="page-btn" onclick="(${cb.toString()})(${pages})">${pages}</button>`;
-  h += `<button class="page-btn" ${cur===pages?'disabled':''} onclick="(${cb.toString()})(${cur+1})">›</button>`;
+  h += `<button class="page-btn" ${!hasPrev?'disabled':''} onclick="(${cb.toString()})(${cur-1})">‹ Назад</button>`;
+  h += `<button class="page-btn active" style="pointer-events:none">${cur}</button>`;
+  h += `<button class="page-btn" ${!hasMore?'disabled':''} onclick="(${cb.toString()})(${cur+1})">Вперёд ›</button>`;
   el.innerHTML = h;
 }

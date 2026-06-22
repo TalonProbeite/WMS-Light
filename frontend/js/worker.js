@@ -48,11 +48,10 @@ const myTxModule = (() => {
       if (from) params.date_from = from + 'T00:00:00';
       if (to)   params.date_to   = to   + 'T23:59:59';
 
+      // transaction_type: 'arrival' | 'departure' — передаём на сервер
+      if (type) params.transaction_type = type;
       let list = await API.transactions.my(params);
       if (!Array.isArray(list)) list = [];
-
-      // Фильтр по типу на стороне клиента (API не принимает параметр type)
-      if (type) list = list.filter(t => t.transaction_type === type);
 
       tbody.innerHTML = list.length ? list.map(t => `
         <tr>
@@ -173,14 +172,15 @@ const workerStockModule = (() => {
   return { load, onSearch };
 })();
 
-function renderPaginationW(cid, count, limit, cur, cb) {
+function renderPaginationW(cid, received, limit, cur, cb) {
   const el = document.getElementById(cid);
   if (!el) return;
-  const pages = Math.ceil(count / limit) || 1;
-  if (pages <= 1) { el.innerHTML = ''; return; }
-  let h = `<button class="page-btn" ${cur===1?'disabled':''} onclick="(${cb.toString()})(${cur-1})">‹</button>`;
-  for (let p = Math.max(1,cur-2); p <= Math.min(pages,cur+2); p++)
-    h += `<button class="page-btn ${p===cur?'active':''}" onclick="(${cb.toString()})(${p})">${p}</button>`;
-  h += `<button class="page-btn" ${cur===pages?'disabled':''} onclick="(${cb.toString()})(${cur+1})">›</button>`;
+  const hasMore = received >= limit;
+  const hasPrev = cur > 1;
+  if (!hasMore && !hasPrev) { el.innerHTML = ''; return; }
+  let h = `<span class="text-muted" style="font-size:0.78rem;margin-right:8px">Стр. ${cur}</span>`;
+  h += `<button class="page-btn" ${!hasPrev?'disabled':''} onclick="(${cb.toString()})(${cur-1})">‹ Назад</button>`;
+  h += `<button class="page-btn active" style="pointer-events:none">${cur}</button>`;
+  h += `<button class="page-btn" ${!hasMore?'disabled':''} onclick="(${cb.toString()})(${cur+1})">Вперёд ›</button>`;
   el.innerHTML = h;
 }
