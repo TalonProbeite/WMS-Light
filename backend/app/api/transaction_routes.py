@@ -102,3 +102,37 @@ async def get_user_transactions_by_name(
     except Exception as e:
         logger.exception(f"Unexpected error: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
+    
+
+
+
+@router.get("/", response_model=List[TransactionResponse])
+async def get_all_transactions(
+    limit: int = 20,
+    offset: int = 0,
+    transaction_type: Optional[str] = None,
+    date_from: Optional[datetime] = None,
+    date_to: Optional[datetime] = None,
+    sort_order: str = "desc",
+    db: AsyncSession = Depends(get_db),
+    user_info: dict = Depends(RoleChecker(["admin", "superadmin"]))
+):
+    if limit > 100:
+        limit = 100 
+        
+    if sort_order not in ["asc", "desc"]:
+        sort_order = "desc"
+
+    try:
+        repo = TransactionsRepository(db)
+        return await repo.get_all_transactions(
+            limit=limit, 
+            offset=offset, 
+            transaction_type=transaction_type,
+            date_from=date_from, 
+            date_to=date_to, 
+            sort_order=sort_order
+        )
+    except Exception as e:
+        logger.exception(f"Unexpected error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")

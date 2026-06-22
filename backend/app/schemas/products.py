@@ -35,3 +35,15 @@ class ProductDetailedResponse(BaseModel):
     stock_updated_at: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+
+class ProductUpdate(BaseModel):
+    name: Optional[str] = None
+    category_id: Optional[int] = None
+    category_name: Optional[str] = None
+    sku: Optional[str] = None
+    qr_code_uuid: Optional[str] = None
+    description: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)

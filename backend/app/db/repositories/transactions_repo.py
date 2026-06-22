@@ -109,3 +109,34 @@ class TransactionsRepository:
         query = query.limit(limit).offset(offset)
         result = await self.db.execute(query)
         return result.scalars().all()
+
+
+    async def get_all_transactions(
+        self, 
+        limit: int, 
+        offset: int,
+        transaction_type: Optional[str] = None,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        sort_order: str = "desc"
+    ):
+        query = select(Transactions)
+        
+        if transaction_type:
+            query = query.where(Transactions.transaction_type == transaction_type)
+
+        if date_from and date_to:
+            query = query.where(Transactions.created_at.between(date_from, date_to))
+        elif date_from:
+            query = query.where(Transactions.created_at >= date_from)
+        elif date_to:
+            query = query.where(Transactions.created_at <= date_to)
+
+        if sort_order.lower() == "asc":
+            query = query.order_by(Transactions.created_at.asc())
+        else:
+            query = query.order_by(Transactions.created_at.desc())
+      
+        query = query.limit(limit).offset(offset)
+        result = await self.db.execute(query)
+        return result.scalars().all()
