@@ -3,11 +3,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from loguru import logger
 from typing import List, Optional
 
-from app.schemas.products import ProductCrate, ProductResponse, ProductDetailedResponse
+from app.schemas.products import ProductCrate, ProductResponse, ProductDetailedResponse , ProductUpdate
 from app.db.database import get_db
 from app.db.repositories.products_repo import ProductsRepository
 from app.api.deps import RoleChecker
-
+from app.core.exceptions import CategoryNotFound
 router = APIRouter(prefix="/products", tags=["Products"])
 
 @router.post("/create",
@@ -98,4 +98,32 @@ async def delete_product(
         raise
     except Exception as e:
         logger.exception(f"Unexpected error in delete_product: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+    
+
+
+@router.patch("/{product_id}", response_model=ProductDetailedResponse)
+async def update_product(
+    product_id: int,
+    product_data: ProductUpdate,
+    db: AsyncSession = Depends(get_db),
+    user_info: dict = Depends(RoleChecker(["admin", "superadmin", "worker"]))
+):
+    repo = ProductsRepository(db=db)
+    try:
+        update_dict = product_data.model_dump(exclude_unset=True)
+        if not update_dict:
+            raise HTTPException(status_code=400, detail="No fields provided for update")
+        
+        updated_product = await repo.update_product(product_id=product_id, update_data=update_dict)
+        if not updated_product:
+            raise HTTPException(status_code=404, detail="Product not found")
+        
+        return await repo.get_product_detailed(product_id=product_id)
+    except CategoryNotFound:
+        raise HTTPException(status_code=404, detail="Category not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Unexpected error in update_product: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")

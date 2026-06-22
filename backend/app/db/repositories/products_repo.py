@@ -189,3 +189,32 @@ class ProductsRepository:
         query = query.limit(limit).offset(offset)
         result = await self.db.execute(query)
         return result.mappings().all()
+    
+
+    async def update_product(self, product_id: int, update_data: dict) -> Optional[Products]:
+        result = await self.db.execute(select(Products).where(Products.id == product_id))
+        product = result.scalar_one_or_none()
+        if not product:
+            return None
+
+        if "category_name" in update_data and update_data["category_name"] is not None:
+            resp = await self.db.execute(select(Categories).where(Categories.name == update_data["category_name"]))
+            cat = resp.scalar_one_or_none()
+            if cat:
+                update_data["category_id"] = cat.id
+            else:
+                raise CategoryNotFound()
+        
+        update_data.pop("category_name", None)
+
+        for key, value in update_data.items():
+            if value is not None:
+                setattr(product, key, value)
+
+        try:
+            await self.db.commit()
+            await self.db.refresh(product)
+            return product
+        except Exception as e:
+            await self.db.rollback()
+            raise e
