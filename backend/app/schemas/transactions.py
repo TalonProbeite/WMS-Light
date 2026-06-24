@@ -12,8 +12,8 @@ class CreateTransaction(BaseModel):
 class TransactionResponse(BaseModel):
     quantity: int
     transaction_type: str
-    user_id: int
-    product_id: int
+    username: str
+    product_name: str
     created_at: Optional[datetime] = None
     
     model_config = ConfigDict(from_attributes=True)

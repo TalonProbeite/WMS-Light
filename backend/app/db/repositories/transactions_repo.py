@@ -28,7 +28,7 @@ class TransactionsRepository:
         return result.scalars().all()
     
     async def add_transaction(self, quantity: int, transaction_type: str, product_id: int, user_id: int) -> Transactions:
-        if transaction_type not in ["arrival", "departure"]:
+        if transaction_type not in ["incoming", "outgoing"]:
             raise InvalidTransactionTypeError()
         
         prod_res = await self.db.execute(select(Products).where(Products.id == product_id))
@@ -41,12 +41,12 @@ class TransactionsRepository:
         if not stock:
             raise ProductNotFoundError()
 
-        if transaction_type == "departure" and stock.quantity < quantity:
+        if transaction_type == "outgoing" and stock.quantity < quantity:
             raise InvalidTransactionError()
 
-        if transaction_type == "arrival":
+        if transaction_type == "incoming":
             stock.quantity += quantity
-        elif transaction_type == "departure":
+        elif transaction_type == "outgoing":
             stock.quantity -= quantity
         
         stock.update_at = datetime.now(timezone.utc)
@@ -63,6 +63,13 @@ class TransactionsRepository:
             self.db.add(transaction)
             await self.db.commit()
             await self.db.refresh(transaction)
+            
+            user_res = await self.db.execute(select(Users).where(Users.id == user_id))
+            user = user_res.scalar_one_or_none()
+            
+            transaction.username = user.username if user else ""
+            transaction.product_name = product.name
+            
             return transaction
         except Exception as e:
             await self.db.rollback()
@@ -86,7 +93,16 @@ class TransactionsRepository:
                 raise UserNotFindError()
             user_id = user.id  
 
-        query = select(Transactions)
+        query = select(
+            Transactions.id,
+            Transactions.quantity,
+            Transactions.transaction_type,
+            Transactions.user_id,
+            Transactions.product_id,
+            Transactions.created_at,
+            Users.username.label("username"),
+            Products.name.label("product_name")
+        ).join(Users, Transactions.user_id == Users.id).join(Products, Transactions.product_id == Products.id)
         
         if user_id is not None:
             query = query.where(Transactions.user_id == user_id)
@@ -108,7 +124,7 @@ class TransactionsRepository:
       
         query = query.limit(limit).offset(offset)
         result = await self.db.execute(query)
-        return result.scalars().all()
+        return result.all()
 
 
     async def get_all_transactions(
@@ -120,7 +136,16 @@ class TransactionsRepository:
         date_to: Optional[datetime] = None,
         sort_order: str = "desc"
     ):
-        query = select(Transactions)
+        query = select(
+            Transactions.id,
+            Transactions.quantity,
+            Transactions.transaction_type,
+            Transactions.user_id,
+            Transactions.product_id,
+            Transactions.created_at,
+            Users.username.label("username"),
+            Products.name.label("product_name")
+        ).join(Users, Transactions.user_id == Users.id).join(Products, Transactions.product_id == Products.id)
         
         if transaction_type:
             query = query.where(Transactions.transaction_type == transaction_type)
@@ -139,4 +164,4 @@ class TransactionsRepository:
       
         query = query.limit(limit).offset(offset)
         result = await self.db.execute(query)
-        return result.scalars().all()
+        return result.all()

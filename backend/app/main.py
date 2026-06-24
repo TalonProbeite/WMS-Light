@@ -10,7 +10,7 @@ from app.api.users_routes import router as UsersRouter
 from app.api.products_routes import router as ProductRouter
 from app.api.transaction_routes import router as TransactionRouter
 from app.api.categories_routes import router as CategoriesRouter
-
+from backend.app.api.dashboard_routes import router as DashboardRouter
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging()
@@ -40,3 +40,4 @@ app.include_router(UsersRouter)
 app.include_router(ProductRouter)
 app.include_router(TransactionRouter)
 app.include_router(CategoriesRouter)
+app.include_router(DashboardRouter)

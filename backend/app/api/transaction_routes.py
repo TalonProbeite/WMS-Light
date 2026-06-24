@@ -104,8 +104,6 @@ async def get_user_transactions_by_name(
         raise HTTPException(status_code=500, detail="Internal server error")
     
 
-
-
 @router.get("/", response_model=List[TransactionResponse])
 async def get_all_transactions(
     limit: int = 20,
@@ -123,6 +121,8 @@ async def get_all_transactions(
     if sort_order not in ["asc", "desc"]:
         sort_order = "desc"
 
+    if transaction_type not in ["incoming", "outgoing"]:
+        transaction_type = "incoming"
     try:
         repo = TransactionsRepository(db)
         return await repo.get_all_transactions(
