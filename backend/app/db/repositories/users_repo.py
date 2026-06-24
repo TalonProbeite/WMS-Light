@@ -99,3 +99,46 @@ class UserRepository:
         result = await self.db.execute(select(Users).where(Users.role == "admin"))
         return result.scalars().all()
 
+    async def delete_user(self, user_id) -> None:
+        user = await self.get_by_id(user_id)
+        if user:
+            try:
+                await self.db.delete(user)
+                await self.db.commit()
+            except Exception as e:
+                await self.db.rollback()
+                raise e
+
+    async def update_role(self, user_id, role: str) -> Optional[Users]:
+        query = (
+            update(Users)
+            .where(Users.id == user_id)
+            .values(role=role)
+        )
+        try:
+            await self.db.execute(query)
+            await self.db.commit()
+            return await self.get_by_id(user_id)
+        except Exception as e:
+            await self.db.rollback()
+            raise e
+
+    async def update_user_info(self, user_id, username: Optional[str] = None, phone: Optional[str] = None) -> Optional[Users]:
+        values = {}
+        if username is not None:
+            values["username"] = username
+        if phone is not None:
+            values["phone"] = phone
+        
+        query = (
+            update(Users)
+            .where(Users.id == user_id)
+            .values(**values)
+        )
+        try:
+            await self.db.execute(query)
+            await self.db.commit()
+            return await self.get_by_id(user_id)
+        except Exception as e:
+            await self.db.rollback()
+            raise e

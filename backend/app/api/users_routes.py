@@ -4,7 +4,7 @@ from loguru import logger
 from datetime import datetime, timezone, timedelta
 from typing import List
 
-from app.schemas.auth import AuthResponse , UserLogIn , AddUser , UserInfo
+from app.schemas.auth import AuthResponse , UserLogIn , AddUser , UserInfo , UpdateRole , UserPatch
 from app.db.database import get_db
 from app.db.repositories.users_repo import  UserRepository
 from app.utils.jwt import encode_jwt
@@ -122,7 +122,7 @@ async def search_user_by_name(username: str, db: AsyncSession = Depends(get_db))
         raise HTTPException(status_code=500, detail="Internal server error")
     
 
-@router.get("/me", response_model=UserInfo)
+@router.get("/me")
 async def get_me(
     user_info: dict = Depends(RoleChecker(["worker", "admin", "superadmin"]))):
     return user_info
@@ -141,4 +141,75 @@ async def logout(response: Response):
         return {"detail": "Successfully logged out"}
     except Exception as e:
         logger.exception(f"Unexpected error during logout: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+    
+
+
+@router.delete("/delete_worker")
+async def delete_worker(user_id: int, db: AsyncSession = Depends(get_db),
+                        user_info: dict = Depends(RoleChecker(["admin", "superadmin"]))):
+    user_repo = UserRepository(db)
+    try:
+        user = await user_repo.get_by_id(user_id)
+        if not user or user.role != "worker":
+            raise HTTPException(status_code=404, detail="Worker not found")
+        await user_repo.delete_user(user_id)
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Unexpected error: {e.__cause__}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.delete("/delete_admin")
+async def delete_admin(user_id: int, db: AsyncSession = Depends(get_db),
+                       user_info: dict = Depends(RoleChecker(["superadmin"]))):
+    user_repo = UserRepository(db)
+    try:
+        user = await user_repo.get_by_id(user_id)
+        if not user or user.role != "admin":
+            raise HTTPException(status_code=404, detail="Admin not found")
+        await user_repo.delete_user(user_id)
+        return {"success": True}
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Unexpected error: {e.__cause__}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.patch("/change_role", response_model=UserInfo)
+async def change_role(user_id: int, role_data: UpdateRole, db: AsyncSession = Depends(get_db),
+                      user_info: dict = Depends(RoleChecker(["superadmin"]))):
+    user_repo = UserRepository(db)
+    try:
+        if role_data.role not in ["worker", "admin"]:
+            raise HTTPException(status_code=400, detail="Invalid role")
+        user = await user_repo.get_by_id(user_id)
+        if not user or user.role not in ["worker", "admin"]:
+            raise HTTPException(status_code=404, detail="User not found")
+        updated_user = await user_repo.update_role(user_id, role_data.role)
+        return updated_user
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Unexpected error: {e.__cause__}")
+        raise HTTPException(status_code=500, detail="Internal server error")
+
+
+@router.patch("/update_info", response_model=UserInfo)
+async def update_info(user_id: int, user_data: UserPatch, db: AsyncSession = Depends(get_db),
+                      user_info: dict = Depends(RoleChecker(["admin", "superadmin"]))):
+    user_repo = UserRepository(db)
+    try:
+        user = await user_repo.get_by_id(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        updated_user = await user_repo.update_user_info(user_id, **user_data.model_dump(exclude_unset=True))
+        return updated_user
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception(f"Unexpected error: {e.__cause__}")
         raise HTTPException(status_code=500, detail="Internal server error")

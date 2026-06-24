@@ -25,7 +25,16 @@ class AddUser(BaseModel):
 class UserInfo(BaseModel):
     username:str
     role:str
-    phone:Optional[str]
+    phone:Optional[str] = None
     last_login: Optional[datetime] = None
 
     model_config = ConfigDict(from_attributes=True)
+
+
+
+class UpdateRole(BaseModel):
+    role: str
+
+class UserPatch(BaseModel):
+    username: Optional[str] = None
+    phone: Optional[str] = None
