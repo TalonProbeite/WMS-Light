@@ -36,21 +36,19 @@ const API = (() => {
     return data;
   };
 
-  const get  = (path)       => request('GET',    path);
-  const post = (path, body) => request('POST',   path, body);
-  const put  = (path, body) => request('PUT',    path, body);
-  const del  = (path)       => request('DELETE', path);
+  const get   = (path)       => request('GET',    path);
+  const post  = (path, body) => request('POST',   path, body);
+  const put   = (path, body) => request('PUT',    path, body);
+  const patch = (path, body) => request('PATCH',  path, body);
+  const del   = (path)       => request('DELETE', path);
 
   const auth = {
-    // POST /users/login → { username, role }
     login: async (username, password) => {
       const data = await post('/users/login', { username, password });
       saveUser({ username: data.username, role: data.role });
       return data;
     },
-    // GET /users/me — проверка живости сессии
-    me: () => get('/users/me'),
-    // POST /users/logout — бэкенд сам удаляет куку
+    me:     () => get('/users/me'),
     logout: async () => {
       try { await post('/users/logout', {}); } catch {}
       clearUser();
@@ -68,28 +66,21 @@ const API = (() => {
   };
 
   const products = {
-    list: (params = {}) => {
-      const q = new URLSearchParams(params).toString();
-      return get(`/products/${q ? '?' + q : ''}`);
-    },
-    single: (params = {}) => {
-      return get(`/products/single?${new URLSearchParams(params).toString()}`);
-    },
-    create: (body) => post('/products/create', body),
-    // DELETE /products/{product_id} — только admin, superadmin
-    remove: (id) => del(`/products/${id}`),
+    list:   (params = {}) => { const q = new URLSearchParams(params).toString(); return get(`/products/${q ? '?' + q : ''}`); },
+    single: (params = {}) => get(`/products/single?${new URLSearchParams(params).toString()}`),
+    create: (body)        => post('/products/create', body),
+    update: (id, body)    => patch(`/products/${id}`, body),
+    remove: (id)          => del(`/products/${id}`),
   };
 
   const categories = {
     list:   ()           => get('/categories/'),
     create: (body)       => post('/categories/create', body),
     update: (id, body)   => put(`/categories/${id}`, body),
-    // DELETE /categories/{cat_name} — по имени; 400 если есть товары
     remove: (name)       => del(`/categories/${encodeURIComponent(name)}`),
   };
 
-  // Нормализует общие параметры транзакций.
-  // transaction_type: 'arrival' | 'departure' | '' (все)
+  // Строго: transaction_type = 'incoming' | 'outgoing'
   const _txParams = (p) => {
     const out = {};
     if (p.limit)            out.limit            = p.limit;
@@ -102,24 +93,25 @@ const API = (() => {
   };
 
   const transactions = {
-    // GET /transactions/ — своя история (все роли)
-    // + поддержка transaction_type: 'arrival' | 'departure'
+    // GET /transactions/my — своя история (worker, admin, superadmin)
+    // Ответ: [{ username, product_name, quantity, transaction_type, created_at }]
     my: (params = {}) => {
+      const q = new URLSearchParams(_txParams(params)).toString();
+      return get(`/transactions/my${q ? '?' + q : ''}`);
+    },
+    // GET /transactions/ — все транзакции (только admin, superadmin)
+    // Ответ: тот же формат с username и product_name
+    all: (params = {}) => {
       const q = new URLSearchParams(_txParams(params)).toString();
       return get(`/transactions/${q ? '?' + q : ''}`);
     },
-    // GET /transactions/get_all — история всех (admin, superadmin)
-    all: (params = {}) => {
-      const q = new URLSearchParams(_txParams(params)).toString();
-      return get(`/transactions/get_all${q ? '?' + q : ''}`);
-    },
-    // GET /transactions/user?user_name= (admin, superadmin)
-    // + поддержка transaction_type: 'arrival' | 'departure'
+    // GET /transactions/user?user_name= (только admin, superadmin)
     byUser: (userName, params = {}) => {
       const p = _txParams(params);
       p.user_name = userName;
       return get(`/transactions/user?${new URLSearchParams(p).toString()}`);
     },
+    // POST /transactions/create { quantity, transaction_type: 'incoming'|'outgoing', product_id }
     create: (body) => post('/transactions/create', {
       quantity:         body.quantity,
       transaction_type: body.transaction_type,
@@ -127,5 +119,11 @@ const API = (() => {
     }),
   };
 
-  return { getUser, clearUser, auth, users, categories, products, transactions };
+  // GET /dashboard/stats → { total_products, out_of_stock_products, total_categories }
+  // Только admin, superadmin
+  const dashboard = {
+    stats: () => get('/dashboard/stats'),
+  };
+
+  return { getUser, clearUser, auth, users, categories, products, transactions, dashboard };
 })();
