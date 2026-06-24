@@ -68,45 +68,45 @@ Warehouse Management System (WMS) — это веб-приложение для 
 
 ### Пользователи и аутентификация (`/users`)
 
-* `POST /users/login` — Аутентификация пользователя. Генерирует JWT и устанавливает его в безопасную куку `access_token` (`HttpOnly`, `Secure`)[cite: 18].
-* `POST /users/logout` — Завершение сессии. Бэкенд отправляет инструкцию браузеру на удаление авторизационной куки[cite: 18].
-* `GET /users/me` — Получение информации о профиле текущего авторизованного пользователя (Доступ: `worker`, `admin`, `superadmin`)[cite: 18].
-* `GET /users/` — Получить список всех пользователей системы (Доступ: `admin`, `superadmin`)[cite: 18].
-* `GET /users/workers` — Получить список всех сотрудников с ролью `worker` (Доступ: `admin`, `superadmin`)[cite: 18].
-* `GET /users/admins` — Получить список всех администраторов с ролью `admin` (Доступ: `admin`, `superadmin`)[cite: 18].
-* `GET /users/search` — Поиск пользователя по точному имени `username` (Доступ: `admin`, `superadmin`)[cite: 18].
-* `POST /users/workers` — Регистрация нового сотрудника (Доступ: `admin`, `superadmin`)[cite: 18].
-* `POST /users/admins` — Регистрация нового администратора (Доступ: строго `superadmin`)[cite: 18].
-* `PATCH /users/update_info` — Частичное изменение данных пользователя по `user_id` (Доступ: `admin`, `superadmin`)[cite: 18].
-* `PATCH /users/change_role` — Изменение роли пользователя по `user_id` (Доступ: строго `superadmin`)[cite: 18].
-* `DELETE /users/delete_worker` — Удаление сотрудника с ролью `worker` по его `user_id` (Доступ: `admin`, `superadmin`)[cite: 18].
-* `DELETE /users/delete_admin` — Удаление администратора с ролью `admin` по его `user_id` (Доступ: строго `superadmin`)[cite: 18].
+* `POST /users/login` — Аутентификация пользователя. Генерирует JWT и устанавливает его в безопасную куку `access_token` (`HttpOnly`, `Secure`).
+* `POST /users/logout` — Завершение сессии. Бэкенд отправляет инструкцию браузеру на удаление авторизационной куки.
+* `GET /users/me` — Получение информации о профиле текущего авторизованного пользователя (Доступ: `worker`, `admin`, `superadmin`).
+* `GET /users/` — Получить список всех пользователей системы (Доступ: `admin`, `superadmin`).
+* `GET /users/workers` — Получить список всех сотрудников с ролью `worker` (Доступ: `admin`, `superadmin`).
+* `GET /users/admins` — Получить список всех администраторов с ролью `admin` (Доступ: `admin`, `superadmin`).
+* `GET /users/search` — Поиск пользователя по точному имени `username` (Доступ: `admin`, `superadmin`).
+* `POST /users/workers` — Регистрация нового сотрудника (Доступ: `admin`, `superadmin`).
+* `POST /users/admins` — Регистрация нового администратора (Доступ: строго `superadmin`).
+* `PATCH /users/update_info` — Частичное изменение данных пользователя по `user_id` (Доступ: `admin`, `superadmin`).
+* `PATCH /users/change_role` — Изменение роли пользователя по `user_id` (Доступ: строго `superadmin`).
+* `DELETE /users/delete_worker` — Удаление сотрудника с ролью `worker` по его `user_id` (Доступ: `admin`, `superadmin`).
+* `DELETE /users/delete_admin` — Удаление администратора с ролью `admin` по его `user_id` (Доступ: строго `superadmin`).
 
 ### Главная панель (`/dashboard`)
 
-* `GET /dashboard/stats` — Получение агрегированных метрик системы (общее количество товаров, категории и количество товаров с нулевым остатком) без выгрузки тяжелых объектов (Доступ: `admin`, `superadmin`)[cite: 15].
+* `GET /dashboard/stats` — Получение агрегированных метрик системы (общее количество товаров, категории и количество товаров с нулевым остатком) без выгрузки тяжелых объектов (Доступ: `admin`, `superadmin`).
 
 ### Товары (`/products`)
 
-* `POST /products/create` — Создание нового товара и автоматическая инициализация записи остатков в `Stock` (Доступ: `worker`, `admin`, `superadmin`)[cite: 16].
-* `GET /products/single` — Получение детальной информации об одном товаре по `product_id` или `name` (Доступ: `worker`, `admin`, `superadmin`)[cite: 16].
-* `GET /products/` — Получение списка всех товаров с пагинацией, текстовым поиском по названию/SKU, фильтрацией по категориям и гибкой сортировкой (Доступ: `worker`, `admin`, `superadmin`)[cite: 16].
-* `PATCH /products/{product_id}` — Частичное редактирование данных товара и обновление привязки к категории (Доступ: `worker`, `admin`, `superadmin`)[cite: 16].
-* `DELETE /products/{product_id}` — Удаление товара из системы по его идентификатору (Доступ: `admin`, `superadmin`)[cite: 16].
+* `POST /products/create` — Создание нового товара и автоматическая инициализация записи остатков в `Stock` (Доступ: `worker`, `admin`, `superadmin`).
+* `GET /products/single` — Получение детальной информации об одном товаре по `product_id` или `name` (Доступ: `worker`, `admin`, `superadmin`).
+* `GET /products/` — Получение списка всех товаров с пагинацией, текстовым поиском по названию/SKU, фильтрацией по категориям и гибкой сортировкой (Доступ: `worker`, `admin`, `superadmin`).
+* `PATCH /products/{product_id}` — Частичное редактирование данных товара и обновление привязки к категории (Доступ: `worker`, `admin`, `superadmin`).
+* `DELETE /products/{product_id}` — Удаление товара из системы по его идентификатору (Доступ: `admin`, `superadmin`).
 
 ### Категории (`/categories`)
 
-* `GET /categories/` — Получить список всех существующих категорий (Доступ: `worker`, `admin`, `superadmin`)[cite: 14].
-* `POST /categories/create` — Создать новую уникальную категорию (Доступ: `worker`, `admin`, `superadmin`)[cite: 14].
-* `PUT /categories/{cat_id}` — Полное редактирование существующей категории по ID (Доступ: `admin`, `superadmin`)[cite: 14].
-* `DELETE /categories/{cat_name}` — Удаление категории по её имени. Запрещено, если к категории всё ещё привязаны товары (Доступ: `admin`, `superadmin`)[cite: 14].
+* `GET /categories/` — Получить список всех существующих категорий (Доступ: `worker`, `admin`, `superadmin`).
+* `POST /categories/create` — Создать новую уникальную категорию (Доступ: `worker`, `admin`, `superadmin`).
+* `PUT /categories/{cat_id}` — Полное редактирование существующей категории по ID (Доступ: `admin`, `superadmin`).
+* `DELETE /categories/{cat_name}` — Удаление категории по её имени. Запрещено, если к категории всё ещё привязаны товары (Доступ: `admin`, `superadmin`).
 
 ### Складские транзакции (`/transactions`)
 
-* `POST /transactions/create` — Проведение операции прихода (`arrival`) или расхода (`departure`). Автоматически пересчитывает количество товара на складе и запрещает списания уходящие в минус (Доступ: `worker`, `admin`, `superadmin`)[cite: 17].
-* `GET /transactions/my` — Просмотр истории транзакций текущего авторизованного пользователя. Поддерживает пагинацию, сортировку и фильтрацию по диапазону дат и типу операции (Доступ: `worker`, `admin`, `superadmin`)[cite: 17].
-* `GET /transactions/user` — Просмотр истории транзакций любого конкретного сотрудника по его `user_name` (Доступ: `admin`, `superadmin`)[cite: 17].
-* `GET /transactions/` — Просмотр общей истории абсолютно всех транзакций в системе. Поддерживает фильтрацию по типам `incoming` / `outgoing`, диапазону дат и пагинацию (Доступ: `admin`, `superadmin`)[cite: 17].
+* `POST /transactions/create` — Проведение операции прихода (`arrival`) или расхода (`departure`). Автоматически пересчитывает количество товара на складе и запрещает списания уходящие в минус (Доступ: `worker`, `admin`, `superadmin`).
+* `GET /transactions/my` — Просмотр истории транзакций текущего авторизованного пользователя. Поддерживает пагинацию, сортировку и фильтрацию по диапазону дат и типу операции (Доступ: `worker`, `admin`, `superadmin`).
+* `GET /transactions/user` — Просмотр истории транзакций любого конкретного сотрудника по его `user_name` (Доступ: `admin`, `superadmin`).
+* `GET /transactions/` — Просмотр общей истории абсолютно всех транзакций в системе. Поддерживает фильтрацию по типам `incoming` / `outgoing`, диапазону дат и пагинацию (Доступ: `admin`, `superadmin`).
 ---
 
 ## 🚀 Как запускать проект
