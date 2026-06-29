@@ -57,12 +57,18 @@ const API = (() => {
   };
 
   const users = {
-    list:         ()         => get('/users/'),
-    listWorkers:  ()         => get('/users/workers'),
-    listAdmins:   ()         => get('/users/admins'),
-    search:       (username) => get(`/users/search?username=${encodeURIComponent(username)}`),
-    createWorker: (body)     => post('/users/workers', body),
-    createAdmin:  (body)     => post('/users/admins',  body),
+    list:         ()              => get('/users/'),
+    listWorkers:  ()              => get('/users/workers'),
+    listAdmins:   ()              => get('/users/admins'),
+    search:       (username)      => get(`/users/search?username=${encodeURIComponent(username)}`),
+    createWorker: (body)          => post('/users/workers', body),
+    createAdmin:  (body)          => post('/users/admins',  body),
+    // PATCH /users/update_info?user_id=N  { username?, phone? }  (admin, superadmin)
+    updateInfo:   (userId, body)  => patch(`/users/update_info?user_id=${userId}`, body),
+    // PATCH /users/update_role?user_id=N  { role: 'worker'|'admin' }  (superadmin only)
+    updateRole:   (userId, body)  => patch(`/users/update_role?user_id=${userId}`, body),
+    // DELETE /users/{user_id}  (superadmin only)
+    remove:       (userId)        => del(`/users/${userId}`),
   };
 
   const products = {
