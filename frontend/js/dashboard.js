@@ -187,46 +187,105 @@ const txModule = (() => {
     userTimer = setTimeout(() => { pendingUser = val.trim(); reset(); }, 500);
   };
 
+  // Кеш продуктов для поиска в модале транзакции
+  let _txProdCache = [];
+  let _txSearchTimer = null;
+
   const openCreate = async () => {
     UI.clearForm('form-tx');
     document.querySelectorAll('#form-tx .field-error').forEach(e => e.textContent = '');
     document.getElementById('tx-stock-hint').style.display = 'none';
+    document.getElementById('tx-product-search').value = '';
+    document.getElementById('tx-product-id').value = '';
+    document.getElementById('tx-product-dropdown').style.display = 'none';
+    // Предзагрузка кеша
     try {
-      let list = await API.products.list({ limit: 100, sort_by: 'name' });
-      if (!Array.isArray(list)) list = [];
-      const sel = document.getElementById('tx-product-sel');
-      sel.innerHTML = '<option value="">— выберите товар —</option>';
-      list.forEach(p => {
-        const o = document.createElement('option');
-        o.value = p.id;
-        o.textContent = `${p.sku ? '['+p.sku+'] ' : ''}${p.name} (ост: ${p.quantity})`;
-        sel.appendChild(o);
-      });
-      sel.onchange = () => {
-        const hint  = document.getElementById('tx-stock-hint');
-        const found = list.find(p => p.id === parseInt(sel.value));
-        if (found) { hint.textContent = `Текущий остаток: ${found.quantity} шт.`; hint.style.display = 'block'; }
-        else hint.style.display = 'none';
-      };
-    } catch {}
+      const list = await API.products.list({ limit: 100, sort_by: 'name' });
+      _txProdCache = Array.isArray(list) ? list : [];
+    } catch { _txProdCache = []; }
     UI.openModal('modal-tx');
   };
 
+  const onProductSearch = async (val) => {
+    clearTimeout(_txSearchTimer);
+    // Сброс выбора при изменении текста
+    document.getElementById('tx-product-id').value = '';
+    document.getElementById('tx-stock-hint').style.display = 'none';
+    if (!val.trim()) { document.getElementById('tx-product-dropdown').style.display = 'none'; return; }
+    _txSearchTimer = setTimeout(async () => {
+      const q = val.toLowerCase();
+      let results = _txProdCache.filter(p =>
+        p.name.toLowerCase().includes(q) || (p.sku || '').toLowerCase().includes(q)
+      );
+      if (!results.length) {
+        try {
+          const fresh = await API.products.list({ search: val, limit: 20, sort_by: 'name' });
+          results = Array.isArray(fresh) ? fresh : [];
+        } catch {}
+      }
+      _showTxDropdown(results.slice(0, 15));
+    }, 200);
+  };
+
+  const _showTxDropdown = (items) => {
+    const dd = document.getElementById('tx-product-dropdown');
+    if (!items.length) {
+      dd.innerHTML = '<div style="padding:10px 14px;color:var(--text-muted);font-size:0.85rem">Ничего не найдено</div>';
+      dd.style.display = 'block'; return;
+    }
+    dd.innerHTML = items.map(p => {
+      const q = p.quantity;
+      const qBadge = q === 0 ? `<span class="badge badge-red" style="margin-left:6px">0</span>`
+                   : q <= 5  ? `<span class="badge badge-warn" style="margin-left:6px">${q}</span>`
+                   : `<span style="margin-left:6px;color:var(--text-muted);font-size:0.78rem">${q} шт.</span>`;
+      return `<div style="padding:9px 14px;cursor:pointer;border-bottom:1px solid var(--border-light,#f0f0f0);font-size:0.88rem"
+        onmousedown="txModule.selectProduct(${p.id},'${p.name.replace(/'/g,"\'")}',${q})"
+        onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">
+        <strong>${p.name}</strong>${p.sku ? `<code style="margin-left:6px;font-size:0.75rem">${p.sku}</code>` : ''}${qBadge}
+      </div>`;
+    }).join('');
+    dd.style.display = 'block';
+  };
+
+  const selectProduct = (id, name, qty) => {
+    document.getElementById('tx-product-search').value = name;
+    document.getElementById('tx-product-id').value     = id;
+    document.getElementById('tx-product-dropdown').style.display = 'none';
+    const hint = document.getElementById('tx-stock-hint');
+    hint.textContent = `Текущий остаток: ${qty} шт.`;
+    hint.style.display = 'block';
+  };
+
+  // Закрыть dropdown при клике вне модала
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('#tx-product-search') && !e.target.closest('#tx-product-dropdown')) {
+      const dd = document.getElementById('tx-product-dropdown');
+      if (dd) dd.style.display = 'none';
+    }
+  });
+
   const save = async () => {
-    const btn  = document.getElementById('btn-save-tx');
-    const data = UI.getFormData('form-tx');
+    const btn     = document.getElementById('btn-save-tx');
+    const data    = UI.getFormData('form-tx');
+    // product_id берём из скрытого поля (заполняется при выборе из dropdown)
+    const prodId  = document.getElementById('tx-product-id')?.value;
     let ok = true;
-    if (!data.transaction_type) { UI.showFieldError('transaction_type', 'Выберите тип');  ok = false; }
-    if (!data.product_id)       { UI.showFieldError('product_id', 'Выберите товар');      ok = false; }
+    if (!data.transaction_type) { UI.showFieldError('transaction_type', 'Выберите тип');       ok = false; }
+    if (!prodId)                { UI.showFieldError('product_id', 'Выберите товар из списка'); ok = false; }
     if (!data.quantity || parseInt(data.quantity) < 1) { UI.showFieldError('quantity', 'Количество ≥ 1'); ok = false; }
     if (!ok) return;
     UI.btnLoading(btn, true);
     try {
       await API.transactions.create({
-        product_id:       parseInt(data.product_id),
+        product_id:       parseInt(prodId),
         quantity:         parseInt(data.quantity),
         transaction_type: data.transaction_type,
       });
+      // Сбрасываем поиск
+      document.getElementById('tx-product-search').value = '';
+      document.getElementById('tx-product-id').value = '';
+      document.getElementById('tx-stock-hint').style.display = 'none';
+      _txProdCache = [];
       UI.closeModal('modal-tx');
       UI.toastSuccess('Операция проведена');
       reset();
@@ -234,7 +293,7 @@ const txModule = (() => {
     finally       { UI.btnLoading(btn, false); }
   };
 
-  return { load, reset, prevPage, nextPage, onUserFilter, openCreate, save };
+  return { load, reset, prevPage, nextPage, onUserFilter, openCreate, onProductSearch, selectProduct, save };
 })();
 
 // ═══ ТОВАРЫ ══════════════════════════════════════════════════════
@@ -495,6 +554,11 @@ const categoriesModule = (() => {
 })();
 
 // ═══ ПОЛЬЗОВАТЕЛИ ════════════════════════════════════════════════
+// GET  /users/                         — список всех
+// POST /users/workers                  — создать кладовщика (admin+)
+// POST /users/admins                   — создать админа (superadmin)
+// PATCH /users/update_role?user_id=N   — сменить роль (superadmin)
+// DELETE /users/{user_id}              — удалить (superadmin)
 const usersModule = (() => {
   let allUsers = [], searchTimer = null;
 
@@ -510,14 +574,21 @@ const usersModule = (() => {
 
   const render = (items) => {
     const tbody = document.getElementById('users-tbody');
+    const isSuperadmin = currentUser?.role === 'superadmin';
     tbody.innerHTML = items.length ? items.map(u => {
       const isSelf = u.username === currentUser?.username;
+      const canDelete = isSuperadmin && !isSelf && u.role !== 'superadmin';
+      const canRole   = isSuperadmin && !isSelf && u.role !== 'superadmin';
       return `<tr>
         <td><strong>${u.username}</strong>${isSelf ? '<span class="badge badge-blue" style="margin-left:6px">Вы</span>' : ''}</td>
         <td>${UI.roleBadge(u.role)}</td>
         <td class="text-muted">${u.phone || '—'}</td>
         <td class="text-muted">${u.last_login ? UI.formatDate(u.last_login) : 'Никогда'}</td>
-        <td></td>
+        <td><div class="td-actions">
+          ${canRole   ? `<button class="btn btn-secondary btn-sm" onclick="usersModule.openRole('${u.username}','${u.role}')">Роль</button>` : ''}
+          ${canDelete ? `<button class="btn btn-danger btn-sm" onclick="usersModule.remove('${u.username}')">Удал.</button>` : ''}
+          ${!canRole && !canDelete ? '<span class="text-muted">—</span>' : ''}
+        </div></td>
       </tr>`;
     }).join('') : UI.renderEmptyRow(5, 'Пользователей нет');
   };
@@ -560,7 +631,45 @@ const usersModule = (() => {
     finally       { UI.btnLoading(btn, false); }
   };
 
-  return { load, onSearch, openCreate, save };
+  // PATCH /users/update_role?user_id=N — только superadmin
+  // /users/ не возвращает id — сохраняем username, передаём его в скрытое поле
+  const openRole = (username, currentRole) => {
+    document.getElementById('modal-role-username').textContent = `Пользователь: ${username}`;
+    UI.setFormData('form-user-role', { user_id: username, role: currentRole });
+    UI.openModal('modal-user-role');
+  };
+
+  const saveRole = async () => {
+    const btn      = document.getElementById('btn-save-role');
+    const data     = UI.getFormData('form-user-role');
+    if (!data.role) return;
+    UI.btnLoading(btn, true);
+    try {
+      // Получаем реальный числовой id через поиск по username
+      const userInfo = await API.users.search(data.user_id);
+      if (!userInfo?.id) throw new Error('Не удалось получить ID пользователя');
+      await API.users.updateRole(userInfo.id, { role: data.role });
+      UI.toastSuccess('Роль изменена');
+      UI.closeModal('modal-user-role');
+      load();
+    } catch (err) { UI.toastError(err.message); }
+    finally       { UI.btnLoading(btn, false); }
+  };
+
+  // DELETE /users/{user_id} — только superadmin
+  const remove = async (username) => {
+    if (!UI.confirm(`Удалить пользователя «${username}»? Это действие необратимо.`)) return;
+    try {
+      // Получаем числовой id через поиск
+      const userInfo = await API.users.search(username);
+      if (!userInfo?.id) throw new Error('Не удалось получить ID пользователя');
+      await API.users.remove(userInfo.id);
+      UI.toastSuccess(`Пользователь ${username} удалён`);
+      load();
+    } catch (err) { UI.toastError(err.message); }
+  };
+
+  return { load, onSearch, openCreate, save, openRole, saveRole, remove };
 })();
 
 // ═══ ПАГИНАЦИЯ ═══════════════════════════════════════════════════

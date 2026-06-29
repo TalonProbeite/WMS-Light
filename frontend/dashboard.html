@@ -406,6 +406,34 @@
   </div>
 </div>
 
+<!-- Смена роли пользователя (superadmin) -->
+<div class="modal-overlay" id="modal-user-role">
+  <div class="modal" style="max-width:360px">
+    <div class="modal-header">
+      <div class="modal-title">Изменить роль</div>
+      <button class="modal-close" onclick="UI.closeModal('modal-user-role')">✕</button>
+    </div>
+    <div class="modal-body">
+      <p id="modal-role-username" style="margin-bottom:12px;font-weight:600"></p>
+      <form id="form-user-role" novalidate>
+        <input type="hidden" name="user_id" />
+        <div class="form-group">
+          <label>Новая роль</label>
+          <select name="role" class="form-control">
+            <option value="worker">Кладовщик</option>
+            <option value="admin">Администратор</option>
+          </select>
+          <span class="field-error" data-error="role"></span>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="UI.closeModal('modal-user-role')">Отмена</button>
+      <button class="btn btn-primary" id="btn-save-role" onclick="usersModule.saveRole()">Сохранить</button>
+    </div>
+  </div>
+</div>
+
 <!-- Новая операция -->
 <div class="modal-overlay" id="modal-tx">
   <div class="modal">
@@ -426,11 +454,21 @@
         </div>
         <div class="form-group">
           <label>Товар <span style="color:var(--danger)">*</span></label>
-          <select name="product_id" class="form-control" required id="tx-product-sel">
-            <option value="">— выберите —</option>
-          </select>
+          <div style="position:relative">
+            <input type="text" id="tx-product-search" class="form-control"
+              placeholder="Введите название или артикул…"
+              autocomplete="off"
+              oninput="txModule.onProductSearch(this.value)"
+              onfocus="txModule.onProductSearch(this.value)" />
+            <div id="tx-product-dropdown" style="
+              display:none;position:absolute;top:100%;left:0;right:0;z-index:200;
+              background:var(--surface);border:1px solid var(--border);
+              border-radius:4px;max-height:220px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.12)">
+            </div>
+          </div>
+          <input type="hidden" name="product_id" id="tx-product-id" />
           <span class="field-error" data-error="product_id"></span>
-          <span id="tx-stock-hint" class="text-muted" style="display:none;margin-top:4px"></span>
+          <span id="tx-stock-hint" class="text-muted" style="display:none;margin-top:4px;font-size:0.82rem"></span>
         </div>
         <div class="form-group">
           <label>Количество <span style="color:var(--danger)">*</span></label>
