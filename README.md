@@ -54,7 +54,7 @@ Warehouse Management System (WMS) — это веб-приложение для 
 5. **Transactions (История операций)**
 * `id` (Primary Key)
 * `quantity` — количество товара в операции
-* `transaction_type` — тип операции (`arrival` — приход, `departure` — расход/списание)
+* `transaction_type` — тип операции (`incoming` — приход, `outgoing` — расход/списание)
 * `product_id` (Foreign Key -> Products) — какой товар изменялся
 * `user_id` (Foreign Key -> Users) — какой сотрудник совершил операцию
 * `created_at` — дата и время проведения транзакции
@@ -111,25 +111,45 @@ Warehouse Management System (WMS) — это веб-приложение для 
 
 ## 🚀 Как запускать проект
 
-Для локального запуска и развертывания проекта используются два файла конфигурации окружения (`.env`):
+Для локального запуска и развертывания проекта используются файлы конфигурации окружения (`.env`), которые обеспечивают связь между контейнерами Docker и настраивают бэкенд-приложение.
 
-1. Корневой `.env` (находится в самом корне проекта) — используется `docker-compose`. Содержит базовые настройки для поднятия контейнера базы данных PostgreSQL:
+### 1. Корневой `.env` (находится в самом корне проекта)
+
+Используется `docker-compose` для автоматического создания и инициализации контейнера базы данных PostgreSQL.
+
 ```env
-POSTGRES_USER=my_db_user
-POSTGRES_PASSWORD=my_secure_password
-POSTGRES_DB=warehouse_db
-POSTGRES_PORT=5432
+# Параметры подключения к СУБД для Docker PostgreSQL
+DB_USER=postgres
+DB_PASSWORD=5225
+DB_NAME=warehouse_local
 
 ```
 
+### 2. Бэкенд `.env` (находится в папке приложения, рядом с основным кодом)
 
-2. Бэкенд `.env` (находится внутри папки приложения, рядом с конфигом) — содержит полный набор настроек для работы FastAPI, включая секреты для подписи JWT-токенов и полный URL подключения к базе данных, дублирующий данные из корневого файла:
+Содержит полные настройки для работы FastAPI, параметры подключения к БД из кода приложения, секреты JWT-авторизации, а также данные для автоматического создания первого суперпользователя при старте системы.
+
 ```env
-DATABASE_URL=postgresql+asyncpg://my_db_user:my_secure_password@db:5432/warehouse_db
-JWT_SECRET_KEY=super_secret_key_for_jwt_signing
-# Другие специфичные настройки бэкенда...
+# Режим отладки приложения
+debug=True
+
+# Настройки подключения бэкенда к базе данных
+db__DATABASE_HOST=db
+db__DATABASE_USER=postgres
+db__DATABASE_PASSWORD=5225
+db__DATABASE_NAME=warehouse_local
+
+# Учетные данные для автоматического создания первого главного администратора (Superadmin)
+db__FIRST_SUPERUSER_USERNAME=superadmin
+db__FIRST_SUPERUSER_PASSWORD=1234567
+db__FIRST_SUPERUSER_PHONE=+37529678912344
+
+# Конфигурация безопасности и подписи JWT-токенов доступа
+jwt__SECRET_KEY=7a5eb579b2e365f5bad0b5fcfb28c25c5f2d0f274d445bca65ab07e8ae52fc14
+jwt__algorithm=HS256
 
 ```
+
 
 
 
